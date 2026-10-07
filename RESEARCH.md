@@ -1,6 +1,6 @@
 # AI agents on shared HPC systems: what other centres do
 
-Research date: 2026-10-05. Web research only (no access to private mailing lists or member-only material). Claims link to
+Research date: 2026-10-05; sections 7 to 9 (agent skills) added 2026-10-07. Web research only (no access to private mailing lists or member-only material). Claims link to
 their source. Where a claim comes from a search-engine summary rather than a page I fetched, or is my own inference, it
 is marked **[unverified]** or **[inference]**.
 
@@ -29,11 +29,17 @@ is marked **[unverified]** or **[inference]**.
    job submissions, issued commands at 20.8x the human rate, queried the scheduler up to 14x more per job among heavy
    users, ran tree walks 7.9x more per user, and leaked 127 API keys in three weeks
    ([arXiv 2609.38723](https://arxiv.org/html/2609.38723)). This supports REANNZ rules on polling, filesystem traversal
-   and secrets, and is citable when seeking LOCAL-NOTE sign-off.
+   and secrets, and is citable when seeking support-team review of a local note.
 5. **Hard controls worth considering beyond AGENTS.md:** Claude Code managed settings + PreToolUse hook (as NERSC/CARC);
    Codex `requirements.toml` with managed hooks; Slurm per-user RPC rate limiting (`SlurmctldParameters=rl_enable`);
    login-node cgroup limits (NERSC cut to 30 GB / 12.5% CPU per user in Apr 2026); an Apptainer agent container (LUMI,
    ORNL ExCL); a centre-hosted LLM endpoint so code need not leave the country (CSCS, Yale, Utah, ALCF, Purdue).
+6. **Skills are now a cross-tool standard, and centres ship them.** The Agent Skills format (`SKILL.md`) is read by Claude
+   Code, Codex, Gemini CLI, Copilot, Cursor, OpenCode and most others; all but Claude Code also read the shared
+   `~/.agents/skills/` path. Isambard, EPCC Cirrus, CSC, Aalto, UC Davis, Indiana and the Alliance (via UAlberta) publish
+   official skills. The common design is an always-loaded rules file plus on-demand skills whose `SKILL.md` is a short
+   router to `references/`, which is exactly the `dist/AGENTS.md` plus skill split planned here (section 7 and 8). The
+   unofficial nesi-support-skill has the right shape but no responsible-use content and is stale (section 9).
 
 ## 1. Published guidance by centre
 
@@ -53,7 +59,7 @@ is marked **[unverified]** or **[inference]**.
 | CSCS Alps (CH) | [Coding Agents on Alps](https://docs.cscs.ch/guides/coding-agents/) | Do not run agents on login nodes; run on compute nodes (ideally in containers/uenvs) or locally with Slurm/FirecREST. Notes that a sandbox around the agent does not propagate to Slurm jobs it submits. Points to a CSCS-hosted LLM inference service. |
 | Aalto Triton (FI) | [AI Agents on HPC](https://scicomp.aalto.fi/triton/usage/ai-agents/) | Example global rules include "Wait at least 15 seconds between squeue/sacct calls"; docs MCP server at `https://docs.triton.aalto.fi/mcp/`; asks users to tell the team which agent they use; no officially approved agents. |
 | Isambard / BriCS (UK) | [Using AI agents](https://docs.isambard.ac.uk/user-documentation/guides/using_ai_agents/), skills repo [isambard-sc/skills.isambard.ac.uk](https://github.com/isambard-sc/skills.isambard.ac.uk) | Strictest: "Do not run AI agents directly on Isambard login nodes"; run locally, review commands and run them yourself. Publishes official skills. |
-| Not found | TACC, PSC, SDSC, OLCF (beyond generic login-node rules), Jülich, EPCC/ARCHER2, Pawsey, NCI Australia, Alliance Canada, Princeton, FASRC user docs | Searches found no agent-specific user docs **[absence not proven]**. Community skills exist for TACC ([claude-tacc-skills](https://github.com/sebale16/claude-tacc-skills)) and UC Davis ([ucdhpc-cluster-skill](https://github.com/ucdavis/ucdhpc-cluster-skill)). |
+| Not found | TACC, PSC, SDSC, OLCF (beyond generic login-node rules), Jülich, ARCHER2, Pawsey, NCI Australia, Princeton, FASRC user docs | Searches found no agent-specific user docs **[absence not proven]**. Skills from CSC, Aalto, EPCC Cirrus, UC Davis, Indiana, the Alliance (via UAlberta) and community TACC/Princeton skills are covered in section 8. |
 
 ## 2. Technical controls in use
 
@@ -154,10 +160,131 @@ a user drives the cluster from an agent on their laptop over SSH (NERSC makes th
   and runs unprivileged so slurmctld is the backstop. [naveenrajm7/slurm-mcp](https://github.com/naveenrajm7/slurm-mcp)
   is also read-only. [slurmx](https://github.com/ItayZloc/slurmx) defaults to dry-run submissions. Purdue RCAC runs its
   own MCP servers; LUMI and Aalto run docs MCP servers.
-- **Skills / rules repos:** [NERSC/coding-agents](https://github.com/nersc/coding-agents/),
-  [isambard-sc/skills.isambard.ac.uk](https://github.com/isambard-sc/skills.isambard.ac.uk),
-  [claude-tacc-skills](https://github.com/sebale16/claude-tacc-skills) (community),
-  [argonne-lcf/alcf-agentics-workflow](https://github.com/argonne-lcf/alcf-agentics-workflow) (not reviewed).
+- **Skills / rules repos:** see section 8. [argonne-lcf/alcf-agentics-workflow](https://github.com/argonne-lcf/alcf-agentics-workflow)
+  turned out to be LangGraph/Globus example workflows and a PBS MCP demo, not agent rules or skills.
+
+## 7. Agent skills: the standard and tool support
+
+- **Agent Skills** is an open format "originally developed by Anthropic, released as an open standard", maintained in the
+  `agentskills` GitHub org ([home](https://agentskills.io/home), [repo](https://github.com/agentskills/agentskills)). It
+  is not an Agentic AI Foundation project ([AAIF projects](https://aaif.io/projects/)); AGENTS.md is
+  ([agents.md](https://agents.md/)). The spec page carries no version number.
+- **Format** ([specification](https://agentskills.io/specification)): a directory `<name>/SKILL.md`, with optional
+  `scripts/`, `references/`, `assets/`. Frontmatter: `name` (required, 1 to 64 chars of `a-z0-9-`, must equal the
+  directory name), `description` (required, up to 1024 chars, says what and when), optional `license`, `compatibility`,
+  `metadata` (string map) and experimental `allowed-tools`.
+- **Progressive disclosure:** only name and description (about 100 tokens per skill) load at startup; the body loads when
+  the skill activates (keep it under 5000 tokens and 500 lines); `references/` files load only when read. Keep references
+  one level deep. A validator exists (`skills-ref validate`), labelled demonstration only
+  ([skills-ref](https://github.com/agentskills/agentskills/tree/main/skills-ref)).
+- **Activation** is model-driven from the description by default, plus an explicit slash or `$name` command in most tools.
+
+| Tool | User path | Project path | System path (Linux) | Source |
+|---|---|---|---|---|
+| Claude Code | `~/.claude/skills/` | `.claude/skills/` | `/etc/claude-code/.claude/skills/` **[inference]** | [skills](https://code.claude.com/docs/en/skills) |
+| Codex CLI | `~/.agents/skills/` | `.agents/skills/` | `/etc/codex/skills` | [build skills](https://learn.chatgpt.com/docs/build-skills) |
+| Gemini CLI | `~/.gemini/skills/`, `~/.agents/skills/` | `.gemini/skills/`, `.agents/skills/` | none documented | [skills](https://geminicli.com/docs/cli/skills/) |
+| Copilot CLI | `~/.copilot/skills`, `~/.agents/skills` | `.github/skills`, `.claude/skills`, `.agents/skills` | none documented | [create skills](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-skills) |
+| VS Code Copilot | `~/.copilot/skills/`, `~/.claude/skills/`, `~/.agents/skills/` | same three under the project | none documented | [agent skills](https://code.visualstudio.com/docs/copilot/customization/agent-skills) |
+| Cursor | `~/.agents/skills/`, `~/.cursor/skills/` (also `~/.claude`, `~/.codex`) | same under the project | none documented; CLI support not stated **[unverified]** | [skills](https://cursor.com/docs/context/skills) |
+| OpenCode | `~/.config/opencode/skills/`, `~/.claude/skills/`, `~/.agents/skills/` | same under the project | none documented | [skills](https://opencode.ai/docs/skills/) |
+| Goose, Amp, Windsurf/Devin, Mistral Vibe, pi, Crush | all read `~/.agents/skills/` | all read `.agents/skills/` | Devin `/etc/devin/skills/`; others via a config path | [goose](https://goose-docs.ai/docs/guides/context-engineering/using-skills), [amp](https://ampcode.com/docs/customize/skills), [devin](https://docs.devin.ai/desktop/cascade/skills), [vibe](https://github.com/mistralai/mistral-vibe), [pi](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md), [crush](https://github.com/charmbracelet/crush) |
+
+- **Shared paths.** `~/.agents/skills/` is read by every tool above except Claude Code; `~/.claude/skills/` is read by
+  Claude Code plus VS Code, Cursor, OpenCode, Amp and Crush. Installing to `~/.agents/skills/<name>` with a symlink at
+  `~/.claude/skills/<name>` covers all of them **[inference]**. The client guide recommends clients scan
+  `~/.agents/skills/` ([adding skills support](https://agentskills.io/client-implementation/adding-skills-support.md)).
+- **Skills and AGENTS.md.** No primary source says how to reference a skill from AGENTS.md. Claude Code's guidance is that
+  always-loaded files stay short and "if an entry is a multi-step procedure or only matters for one part of the codebase,
+  move it to a skill" ([memory](https://code.claude.com/docs/en/memory)); Ona says the same
+  ([Ona](https://ona.com/docs/ona/agents-md)). The client guide's fallback for tools without skill support is a catalogue
+  line giving the name, description and absolute path, telling the agent to read that `SKILL.md` when a task matches
+  ([adding skills support](https://agentskills.io/client-implementation/adding-skills-support.md)). Claude Code warns that
+  a prose pointer only works if the model decides to open the file ([memory](https://code.claude.com/docs/en/memory)).
+- **Claude Code now reads AGENTS.md natively** (v2.1.277+), but only when no CLAUDE.md exists in the working directory or
+  above it; an `@AGENTS.md` import in CLAUDE.md still works ([memory](https://code.claude.com/docs/en/memory)). The
+  installer's import approach remains right.
+- **Distribution.** Claude Code plugin marketplaces (`.claude-plugin/marketplace.json`), with admin force-install through
+  managed settings and a read-only seed directory (`CLAUDE_CODE_PLUGIN_SEED_DIR`) for shared machines
+  ([plugin marketplaces](https://code.claude.com/docs/en/plugin-marketplaces), [org plugins](https://code.claude.com/docs/en/plugins/org)).
+  Codex, Copilot CLI and Gemini have their own plugin or extension installers
+  ([Codex](https://learn.chatgpt.com/docs/build-plugins),
+  [Copilot](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-finding-installing),
+  [Gemini](https://geminicli.com/docs/extensions/)). Agent Plugins 1.0 is a cross-vendor package (`plugin.json`, a
+  `skills/` folder, `mcp.json`) backed by Amazon, Cursor, Microsoft, OpenAI and Vercel, not listing Claude Code
+  ([spec](https://agent-plugins.org/specification), [AAIF blog](https://aaif.io/blog/from-skills-and-tools-to-portable-agent-plugins)).
+  `npx skills` installs into 75+ agents ([vercel-labs/skills](https://github.com/vercel-labs/skills)).
+- **Do agents actually use skills?** Not reliably. In Vercel's evals (Next.js tasks, Jan 2026) an available skill was
+  never invoked in 56% of runs and gave no gain over no docs (53% pass); an explicit instruction to use it raised that to
+  79%, and a compressed 8 KB docs index kept in AGENTS.md reached 100%; results were sensitive to the instruction's
+  wording ([Vercel](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)). Across 145 real skills,
+  paired with/without trials found a positive lift in 72.8% of cases, and static reviews of skill text barely predicted
+  real lift (rho 0.14) ([ACES, arXiv 2608.20614](https://arxiv.org/abs/2608.20614)). Implication: keep a compressed
+  skill index and an explicit "load the skill" instruction in AGENTS.md, and measure with paired runs rather than review
+  **[inference]**.
+- **Docs for agents.** docs.nesi.org.nz already serves an `llms.txt` index of per-page Markdown URLs (`llms-full.txt` is
+  404; both checked 2026-10-07). A skill can point at those URLs for detail it doesn't carry **[inference]**. GitMCP can
+  serve any GitHub repo as a docs MCP server ([gitmcp.io](https://gitmcp.io/)).
+
+## 8. Skills and context packages from other centres
+
+| Centre / project | Official? | Format | Install | Kept in sync with docs? | URL |
+|---|---|---|---|---|---|
+| Isambard (BriCS) | Yes | 11 SKILL.md skills in a plugin, some with `references/` | Plugin marketplace (Claude, Codex, Cursor, Antigravity); raw URLs on skills.isambard.ac.uk | Agent-run workflow from per-skill `metadata.source_url`; CI checks structure only | [repo](https://github.com/isambard-sc/skills.isambard.ac.uk) |
+| EPCC Cirrus | Yes | 6 skills, fork of the Isambard design | Plugin marketplace | As Isambard | [repo](https://github.com/EPCCed/skills.cirrus.ac.uk) |
+| CSC (Finland) | Yes | 5 skills, each `SKILL.md` + `references/{concepts,code-patterns}.md` | Claude and Codex plugin manifests, `.agents/skills/` symlinks | `sync-upstream.sh` clones the docs; manual edits; `check-skills.sh` validates the spec | [repo](https://github.com/CSCfi/csc-skills) |
+| Aalto Triton | Yes | 7 skills with `sources.tsv` provenance, plus an always-on `triton-rules.md`, plus a docs MCP server | Symlink from a shared directory on the cluster; MCP URL | Manual, MCP is live | [repo](https://github.com/AaltoSciComp/triton-skills) |
+| UC Davis HPCCF | Yes | 1 skill: `SKILL.md` (155 lines), 7 references, 3 scripts, evals | Per-user symlink | Docs-derived, facts live-checked Sep 2026 | [repo](https://github.com/ucdavis/ucdhpc-cluster-skill) |
+| Indiana (IUSCA) | Likely **[inference]** | 13 skills under `.agents/skills/`, every claim tagged Observed / KB-cited / Practice, "Verified" dates | Clone, Claude marketplace | Weekly freshness CI opens issues; stale after 120 days | [repo](https://github.com/IUSCA/research-technologies) |
+| UAlberta (Alliance Canada) | Site-official **[inference]** | Skills plus `/etc` configs plus a docs RAG API skill | `/etc/claude-code/`, `/etc/agents/AGENTS.md`, `profile.d` script symlinking into `~/.agents/skills` etc. without overwriting; ansible | RAG live, skills manual | [repo](https://github.com/ualberta-rcg/drac-agent-skills) |
+| Purdue RCAC | Yes | Generated `/etc/agents.d/*.md` concatenated into AGENTS.md; docs MCP; Slurm/Globus MCP servers | System `/etc` and managed settings | Generated from per-cluster YAML; volatile numbers deliberately not hardcoded (agents run `myquota`) | [docs](https://docs.rcac.purdue.edu/agentic-ai/shared_context/context_files/) |
+| LUMI AI Factory | Yes | Agent container with bundled AGENTS.md, RAG docs MCP | `module load` | MCP vector index | [docs](https://docs.lumi-supercomputer.eu/laif/software/agent-infrastructure/) |
+| USC CARC | Yes | ~18 KB always-loaded rules, managed permissions, 49 KB `precheck.sh` hook | System `/etc` | Hand-written | [repo](https://github.com/uschpc/CARC-Harness-for-Coding-Agents) |
+| NERSC | Yes | ~3 KB CLAUDE.md / AGENTS.md; managed filesystem hook; a compute skill "planned" | Manual paste into `~/.claude`, `~/.codex` | Hand-written | [repo](https://github.com/NERSC/coding-agents) |
+| Yale SOM | No (practitioners) | 23-skill plugin | Plugin marketplace | Hand-written | [repo](https://github.com/yale-som-hpc/claude-code-marketplace) |
+| TACC | No (community) | One 734-line file used as SKILL.md; on-cluster verify scripts with `sbatch --test-only` | Per-user symlink | Hand-written | [repo](https://github.com/sebale16/claude-tacc-skills) |
+| pu-shd/slurm-skill | **[unverified]** | Generic Slurm toolkit driven over SSH, site profiles, pytest against a fake cluster | `npx skills add` | Hand-written | [repo](https://github.com/pu-shd/slurm-skill) |
+
+No HPC or Slurm skill is in [anthropics/skills](https://github.com/anthropics/skills/tree/main/skills). Nothing found from
+CSCS, NCI, Pawsey, ARCHER2, Jülich, OLCF, OSC, SDSC, PSC, MIT or Harvard **[absence not proven]**.
+
+**Designs worth copying**
+- Always-on rules file plus on-demand skills, with `SKILL.md` as a short router and detail in `references/` (Aalto, CSC).
+  CSC's authoring guide is the best found: "write only what the reader doesn't already know"; "if deleting a line wouldn't
+  change what a model does, delete it."
+- Provenance per skill or section (Aalto `sources.tsv`, Isambard `metadata.source_url`), and freshness CI that opens issues
+  (Indiana). This repo's `<!-- sources -->` comments and `drift.yml` already do both.
+- Query volatile values with commands rather than hardcoding them (Purdue, Aalto).
+- Scripts that validate without submitting (`sbatch --test-only` linters at UC Davis and TACC), and with/without-skill
+  evals (UC Davis found only some rules measurably change behaviour).
+- One source tree installed for many agents: `.agents/skills/` plus Claude plugin manifests (Isambard, CSC), with optional
+  `/etc` and `profile.d` deployment (Alliance, Purdue).
+
+**Pitfalls seen**
+- Real incident details and an allocation code embedded in a community skill (TACC).
+- A skill telling the agent it overrides user instructions and other skills (UC Davis), the pattern Aalto warns about as
+  a prompt-injection vector.
+- Large always-loaded files (CARC, ~18 KB); "Proprietary" licence on a docs-derived policy skill (Isambard); over-broad
+  deny lists blocking read-only commands (Alliance); manual copy-paste updates (NERSC).
+
+## 9. The unofficial nesi-support-skill
+
+[chrisdjscott/nesi-support-skill](https://github.com/chrisdjscott/nesi-support-skill), reviewed at its 2026-09-17 commit
+(GPLv3, one author, not affiliated with REANNZ). The upstream AI Agent Guidelines link it as "an unofficial AI skill for
+responsible operation".
+- **Shape:** `SKILL.md` (78 lines, about 6 KB) named `nesi-hpc`, a router with "Load for" hints; 9 topic references
+  (Slurm, Slurm examples, hardware, filesystems, modules, parallel, containers, debugging and efficiency, access) and 53
+  per-application files under `references/software/`, about 210 KB in all.
+- **Sync:** hand-condensed; `sources.toml` maps references to upstream pages and a drift script diffs a pinned
+  support-docs submodule, the same approach as this repo, but with no CI, lint or tests.
+- **Coverage gaps:** no data transfer (Globus, rsync, rclone), almost nothing on OnDemand and Jupyter, accounts and
+  allocations excluded, and **no responsible-use content**: nothing on polling, scoping, one session, tunnels, secrets or
+  the AUP. 57 upstream commits behind, so it misses the AI Agent Guidelines, AUP clause 12 and recent application pages.
+- **Possible conflicts with the rules:** a local note tells agents both login and compute nodes have outbound internet for
+  `pip install` and `git clone`, with no dependency review; some application pages teach SSH tunnels without separating
+  allowed inbound or intra-cluster forwards from forbidden outward ones.
+- **Worth keeping:** the router layout and per-application references, terse agent-facing style, `nesi99991` as the only
+  example project code, the GPU workload-fit advice.
 
 ## Gaps and open questions
 
@@ -171,6 +298,9 @@ a user drives the cluster from an agent on their laptop over SSH (NERSC makes th
   `sysctl user.max_user_namespaces` on login nodes.
 - ALCF guidance and the security benchmark could not be read directly.
 - No centre publishes agent-specific Slurm RPC rate limits or egress filtering; REANNZ would be early if it did.
+- Whether Claude Code honours skills under `/etc/claude-code/.claude/skills/` and whether Cursor CLI reads skills at all
+  are inferred or unstated; test before relying on either.
+- Indiana's and UAlberta's skills look official but neither says so on the pages read.
 - Mailing lists (HPC-announce, slurm-users, CUG) were not searchable for this topic; no SC25/SC26 BoF specifically on
   agent safety was found.
 
@@ -197,4 +327,8 @@ a user drives the cluster from an agent on their laptop over SSH (NERSC makes th
 - Copilot CLI: <https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions>, <https://docs.github.com/en/copilot/how-tos/copilot-cli/administer-copilot-cli-for-your-enterprise>
 - Cursor: <https://cursor.com/docs/cli/using>, <https://cursor.com/docs/hooks>, <https://cursor.com/docs/rules>, <https://cursor.com/docs/cli/reference/configuration>
 - Slurm rate limiting: <https://niflheim-system.readthedocs.io/en/latest/Slurm_configuration.html>, <https://manpages.debian.org/unstable/slurm-client/slurm.conf.5.en.html>
+- Agent Skills: <https://agentskills.io/home>, <https://agentskills.io/specification>, <https://agentskills.io/client-implementation/adding-skills-support.md>, <https://github.com/agentskills/agentskills>, <https://aaif.io/projects/>, <https://agents.md/>, <https://agent-plugins.org/specification>, <https://aaif.io/blog/from-skills-and-tools-to-portable-agent-plugins>, <https://github.com/vercel-labs/skills>, <https://gitmcp.io/>, <https://ona.com/docs/ona/agents-md>
+- Skills per tool: <https://code.claude.com/docs/en/skills>, <https://code.claude.com/docs/en/plugin-marketplaces>, <https://code.claude.com/docs/en/plugins/org>, <https://learn.chatgpt.com/docs/build-skills>, <https://learn.chatgpt.com/docs/build-plugins>, <https://geminicli.com/docs/cli/skills/>, <https://geminicli.com/docs/extensions/>, <https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-skills>, <https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-finding-installing>, <https://code.visualstudio.com/docs/copilot/customization/agent-skills>, <https://cursor.com/docs/context/skills>, <https://opencode.ai/docs/skills/>, <https://goose-docs.ai/docs/guides/context-engineering/using-skills>, <https://ampcode.com/docs/customize/skills>, <https://docs.devin.ai/desktop/cascade/skills>, <https://github.com/mistralai/mistral-vibe>, <https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md>, <https://github.com/charmbracelet/crush>
+- Centre skills: <https://github.com/isambard-sc/skills.isambard.ac.uk>, <https://github.com/EPCCed/skills.cirrus.ac.uk>, <https://github.com/CSCfi/csc-skills>, <https://github.com/AaltoSciComp/triton-skills>, <https://github.com/ucdavis/ucdhpc-cluster-skill>, <https://github.com/IUSCA/research-technologies>, <https://github.com/ualberta-rcg/drac-agent-skills>, <https://github.com/uschpc/CARC-Harness-for-Coding-Agents>, <https://github.com/yale-som-hpc/claude-code-marketplace>, <https://github.com/pu-shd/slurm-skill>, <https://github.com/anthropics/skills>, <https://github.com/chrisdjscott/nesi-support-skill>, <https://github.com/lumi-ai-factory/laifs-agent-env>, <https://github.com/lumi-ai-factory/laifs-mcp-server>, <https://docs.rcac.purdue.edu/agentic-ai/mcp_servers/>
+- Skill effectiveness: <https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals>, <https://arxiv.org/abs/2608.20614>
 - Papers and community: <https://arxiv.org/html/2609.38723>, <https://arxiv.org/pdf/2607.18485>, <https://zenodo.org/records/22218003>, <https://github.com/Zhanyl-tech/slurm-mcp>, <https://github.com/naveenrajm7/slurm-mcp>, <https://github.com/ItayZloc/slurmx>, <https://github.com/nollde/claude-hpc>, <https://github.com/sebale16/claude-tacc-skills>, <https://github.com/argonne-lcf/alcf-agentics-workflow>
