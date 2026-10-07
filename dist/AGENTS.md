@@ -24,7 +24,7 @@ Login nodes, the scheduler and the filesystems are shared by every user. Behave 
 - **Target file operations.** Point `find`, `grep -r` and `du` at a specific known directory.
   Never scan `/home`, `/nesi/project`, `/nesi/nobackup` or other shared parents.
 - **Keep the login node light.** Editing, building small things, submitting and monitoring are fine there.
-  Anything CPU or memory heavy goes into a Slurm job (batch, or `srun`/`salloc` interactive).
+  Anything CPU or memory heavy goes into a Slurm job (`sbatch`, or `srun`/`salloc` interactive).
 - **Run one agent session at a time**, unless support has agreed to more.
 - **Never read other users' files** or interfere with their work (AUP).
 - **Stay inside your working directory.** Work in the project directory the user gave you, plus your own tool
