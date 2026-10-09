@@ -29,7 +29,7 @@ is marked **[unverified]** or **[inference]**.
    job submissions, issued commands at 20.8x the human rate, queried the scheduler up to 14x more per job among heavy
    users, ran tree walks 7.9x more per user, and leaked 127 API keys in three weeks
    ([arXiv 2609.38723](https://arxiv.org/html/2609.38723)). This supports REANNZ rules on polling, filesystem traversal
-   and secrets, and is citable when seeking support-team review of a local note.
+   and secrets, and is citable when proposing rules to the docs team.
 5. **Hard controls worth considering beyond AGENTS.md:** Claude Code managed settings + PreToolUse hook (as NERSC/CARC);
    Codex `requirements.toml` with managed hooks; Slurm per-user RPC rate limiting (`SlurmctldParameters=rl_enable`);
    login-node cgroup limits (NERSC cut to 30 GB / 12.5% CPU per user in Apr 2026); an Apptainer agent container (LUMI,
@@ -280,7 +280,7 @@ responsible operation".
 - **Coverage gaps:** no data transfer (Globus, rsync, rclone), almost nothing on OnDemand and Jupyter, accounts and
   allocations excluded, and **no responsible-use content**: nothing on polling, scoping, one session, tunnels, secrets or
   the AUP. 57 upstream commits behind, so it misses the AI Agent Guidelines, AUP clause 12 and recent application pages.
-- **Possible conflicts with the rules:** a local note tells agents both login and compute nodes have outbound internet for
+- **Possible conflicts with the rules:** a LOCAL-NOTE in that skill tells agents both login and compute nodes have outbound internet for
   `pip install` and `git clone`, with no dependency review; some application pages teach SSH tunnels without separating
   allowed inbound or intra-cluster forwards from forbidden outward ones.
 - **Worth keeping:** the router layout and per-application references, terse agent-facing style, `nesi99991` as the only
