@@ -1,0 +1,5 @@
+{
+  "permissions": {
+    "additionalDirectories": ["/opt/nesi/share/mahuika-agents/dist"]
+  }
+}
