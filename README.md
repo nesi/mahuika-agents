@@ -46,38 +46,6 @@ updates it. Everything points into its `dist/`, so the path must not change. To 
 git -C /opt/nesi/share/mahuika-agents pull --ff-only
 ```
 
-### Global links and configs
-
-**Not in place yet:** the skills are still being tested, so none of these have been made. Every entry is a symlink
-into the clone (`R=/opt/nesi/share/mahuika-agents`), so it follows each pull; a config file that doesn't exist
-elsewhere lives in this repo under `etc/`.
-
-New accounts, in `/etc/skel` (users can delete them to opt out; keep in step with the table above and `TOOLS` in
-`install.sh`):
-
-| Link | Target |
-|---|---|
-| `/etc/skel/.claude/CLAUDE.md` | `$R/dist/AGENTS.md` |
-| `/etc/skel/.codex/AGENTS.md` | `$R/dist/AGENTS.md` |
-| `/etc/skel/.gemini/GEMINI.md` | `$R/dist/AGENTS.md` |
-| `/etc/skel/.copilot/copilot-instructions.md` | `$R/dist/AGENTS.md` |
-
-System-wide, on every node where agents run (login, OnDemand, and compute nodes if agents run in jobs):
-
-| Link | Target | Why |
-|---|---|---|
-| `/etc/claude-code/managed-settings.d/mahuika-agents.json` | `$R/etc/claude-code/managed-settings.d/mahuika-agents.json` | Claude Code reads the skills without a permission prompt |
-| `/etc/claude-code/CLAUDE.md` | `$R/dist/AGENTS.md` | Optional: rules for every Claude Code user, which users can't opt out of |
-| `/etc/ampcode/AGENTS.md` | `$R/dist/AGENTS.md` | Optional: the same for Amp |
-| `/etc/codex/skills/mahuika-<topic>` | `$R/dist/skills/mahuika-<topic>` | Optional: native skills for Codex, one link per skill |
-
-- Pick per tool either the `/etc/skel` link or the system-wide one, not both, or the rules may load twice. Whether
-  rules are on by default with no opt-out is a REANNZ policy decision.
-- Claude Code refuses to start if a managed settings file can't be read or isn't valid JSON. Test changes to `etc/`
-  before pushing (the tests check it parses), and remember the link breaks if `/opt/nesi` is unavailable.
-- Codex has no system rules file, and Gemini and Copilot have neither system rules nor system skills, so those stay
-  per user.
-
 ## How it works
 
 `dist/` says only what the [support docs](https://github.com/nesi/support-docs) say, plus facts from the live
