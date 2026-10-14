@@ -46,6 +46,17 @@ updates it. Everything points into its `dist/`, so the path must not change. To 
 git -C /opt/nesi/share/mahuika-agents pull --ff-only
 ```
 
+### Global links and configs
+
+System-wide, on every node where agents run (login, OnDemand, and compute nodes if agents run in jobs):
+
+| Link | Target | Why |
+|---|---|---|
+| `/etc/claude-code/managed-settings.d/mahuika-agents.json` | `$R/etc/claude-code/managed-settings.d/mahuika-agents.json` | Claude Code reads the skills without a permission prompt |
+| `/etc/claude-code/CLAUDE.md` | `$R/dist/AGENTS.md` | Optional: rules for every Claude Code user, which users can't opt out of |
+| `/etc/ampcode/AGENTS.md` | `$R/dist/AGENTS.md` | Optional: the same for Amp |
+| `/etc/codex/skills/mahuika-<topic>` | `$R/dist/skills/mahuika-<topic>` | Optional: native skills for Codex, one link per skill |
+
 ## How it works
 
 `dist/` says only what the [support docs](https://github.com/nesi/support-docs) say, plus facts from the live
