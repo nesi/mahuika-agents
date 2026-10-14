@@ -3,12 +3,13 @@
 #
 #   ./install.sh               link the rules file of each tool below (the same links new accounts get)
 #   ./install.sh --skills      also link the mahuika-* skills into ~/.agents/skills and ~/.claude/skills
-#                              (otherwise agents find them through the index in AGENTS.md)
+#                              (otherwise agents find them through the index in AGENTS.md). The default
+#                              off the cluster, where the index's paths don't exist
 #   ./install.sh --project DIR also link DIR/AGENTS.md (read by most agents) if DIR has none
 #
 # The rules are the shared copy maintained by REANNZ when it exists, so every release reaches
 # you with no action; otherwise this checkout's dist/AGENTS.md. Skills come from the skills/
-# directory next to it. With --skills, re-run after an update to pick up new skills.
+# directory next to it. When linking skills, re-run after an update to pick up new skills.
 # Never overwrites an existing file: it adds an import line where the tool supports one, or
 # prints what to add.
 set -euo pipefail
@@ -80,9 +81,10 @@ setup_project() {
     fi
 }
 
-usage() { sed -n '2,13p' "$0"; exit 1; }
+usage() { sed -n '2,14p' "$0"; exit 1; }
 
-skills=0 project=
+# No shared copy means we're off the cluster: the index's paths won't resolve, so link the skills.
+skills=$([ -r "$SHARED" ] && echo 0 || echo 1) project=
 while [ $# -gt 0 ]; do
     case "$1" in
         --skills) skills=1 ;;

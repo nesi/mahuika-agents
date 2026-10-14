@@ -13,7 +13,7 @@ Rules and skills for AI agents (Claude Code, Codex, Copilot, Gemini CLI, OpenCod
 ## Users
 
 Agents should read `/opt/nesi/share/mahuika-agents/dist/AGENTS.md`. Each tool's home-directory rules file links to
-it. The installer makes these links (new accounts will start with them, once enabled):
+it. The installer makes these links.
 
 | Link in `$HOME` | Read by |
 |---|---|
@@ -25,19 +25,18 @@ it. The installer makes these links (new accounts will start with them, once ena
 Run it to make any that are missing:
 
 ```bash
-I=/opt/nesi/share/mahuika-agents/install.sh
-$I                       # the links above
-$I --skills              # also link the skills into ~/.agents/skills and ~/.claude/skills (native loading, /mahuika-* commands)
-$I --project ~/myproj    # also ~/myproj/AGENTS.md, for tools with no home-directory file (Cursor CLI)
-$I --uninstall           # remove them all
+/opt/nesi/share/mahuika-agents/install.sh
 ```
+
+`--skills` will also link the skills into ~/.agents/skills and ~/.claude/skills (native loading, /mahuika-* commands).
+`--project ~/myproj` will also ~/myproj/AGENTS.md, for tools with no home-directory file (Cursor CLI)
 
 It never overwrites a file: if one already exists, it adds an `@` import (Claude Code) or prints what to add.
 
 **Agents on your own computer** don't see the cluster's copy. Clone this repo there and run
-`install.sh --skills`; `git pull` to update. Never let such an agent log in on its own.
+`install.sh`, which links the skills too off the cluster; `git pull` to update, then re-run it to pick up new skills. Never let such an agent log in on its own.
 
-## Admins
+## Update Main Repo
 
 `/opt/nesi/share/mahuika-agents` is a clone of this repo, readable by everyone and writable only by the account that
 updates it. Everything points into its `dist/`, so the path must not change. To deploy, pull the latest:
@@ -46,21 +45,21 @@ updates it. Everything points into its `dist/`, so the path must not change. To 
 git -C /opt/nesi/share/mahuika-agents pull --ff-only
 ```
 
-### Global links and configs
+## Global links and configs
 
-System-wide, on every node where agents run (login, OnDemand, and compute nodes if agents run in jobs):
+System-wide config files
 
 | Link | Target | Why |
 |---|---|---|
-| `/etc/claude-code/managed-settings.d/mahuika-agents.json` | `$R/etc/claude-code/managed-settings.d/mahuika-agents.json` | Claude Code reads the skills without a permission prompt |
-| `/etc/claude-code/CLAUDE.md` | `$R/dist/AGENTS.md` | Optional: rules for every Claude Code user, which users can't opt out of |
-| `/etc/ampcode/AGENTS.md` | `$R/dist/AGENTS.md` | Optional: the same for Amp |
-| `/etc/codex/skills/mahuika-<topic>` | `$R/dist/skills/mahuika-<topic>` | Optional: native skills for Codex, one link per skill |
+| `/etc/claude-code/managed-settings.d/mahuika-agents.json` | `/opt/nesi/share/mahuika-agents/etc/claude-code/managed-settings.d/mahuika-agents.json` | Claude Code reads the skills without a permission prompt |
+| `/etc/claude-code/CLAUDE.md` | `/opt/nesi/share/mahuika-agents/dist/AGENTS.md` | Optional: rules for every Claude Code user, which users can't opt out of |
+| `/etc/ampcode/AGENTS.md` | `/opt/nesi/share/mahuika-agents/dist/AGENTS.md` | the same for Amp |
+| `/etc/codex/skills/` | `/opt/nesi/share/mahuika-agents/dist/skills/` | native skills for Codex |
 
-## How it works
+## Workflow
 
 `dist/` says only what the [support docs](https://github.com/nesi/support-docs) say, plus facts from the live
-cluster and official tool documentation, so the docs team's review is the only review it needs.
+cluster and official tool documentation.
 
 - Each heading in `src/` cites the docs pages it condenses.
 - `tools/drift.py` (weekly in CI) reports docs changes and the sections that cite them.
