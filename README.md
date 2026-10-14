@@ -13,7 +13,7 @@ Rules and skills for AI agents (Claude Code, Codex, Copilot, Gemini CLI, OpenCod
 ## Users
 
 Agents should read `/opt/nesi/share/mahuika-agents/dist/AGENTS.md`. Each tool's home-directory rules file links to
-it. New accounts start with these links:
+it. The installer makes these links (new accounts will start with them, once enabled):
 
 | Link in `$HOME` | Read by |
 |---|---|
@@ -22,7 +22,7 @@ it. New accounts start with these links:
 | `.gemini/GEMINI.md` | Gemini CLI |
 | `.copilot/copilot-instructions.md` | Copilot CLI |
 
-Older accounts run the installer, which makes any links that are missing:
+Run it to make any that are missing:
 
 ```bash
 I=/opt/nesi/share/mahuika-agents/install.sh
@@ -46,8 +46,37 @@ updates it. Everything points into its `dist/`, so the path must not change. To 
 git -C /opt/nesi/share/mahuika-agents pull --ff-only
 ```
 
-For new accounts, put the links from the table above in `/etc/skel`, each pointing at
-`/opt/nesi/share/mahuika-agents/dist/AGENTS.md`. Keep the table, `/etc/skel` and `TOOLS` in `install.sh` in step.
+### Global links and configs
+
+**Not in place yet:** the skills are still being tested, so none of these have been made. Every entry is a symlink
+into the clone (`R=/opt/nesi/share/mahuika-agents`), so it follows each pull; a config file that doesn't exist
+elsewhere lives in this repo under `etc/`.
+
+New accounts, in `/etc/skel` (users can delete them to opt out; keep in step with the table above and `TOOLS` in
+`install.sh`):
+
+| Link | Target |
+|---|---|
+| `/etc/skel/.claude/CLAUDE.md` | `$R/dist/AGENTS.md` |
+| `/etc/skel/.codex/AGENTS.md` | `$R/dist/AGENTS.md` |
+| `/etc/skel/.gemini/GEMINI.md` | `$R/dist/AGENTS.md` |
+| `/etc/skel/.copilot/copilot-instructions.md` | `$R/dist/AGENTS.md` |
+
+System-wide, on every node where agents run (login, OnDemand, and compute nodes if agents run in jobs):
+
+| Link | Target | Why |
+|---|---|---|
+| `/etc/claude-code/managed-settings.d/mahuika-agents.json` | `$R/etc/claude-code/managed-settings.d/mahuika-agents.json` | Claude Code reads the skills without a permission prompt |
+| `/etc/claude-code/CLAUDE.md` | `$R/dist/AGENTS.md` | Optional: rules for every Claude Code user, which users can't opt out of |
+| `/etc/ampcode/AGENTS.md` | `$R/dist/AGENTS.md` | Optional: the same for Amp |
+| `/etc/codex/skills/mahuika-<topic>` | `$R/dist/skills/mahuika-<topic>` | Optional: native skills for Codex, one link per skill |
+
+- Pick per tool either the `/etc/skel` link or the system-wide one, not both, or the rules may load twice. Whether
+  rules are on by default with no opt-out is a REANNZ policy decision.
+- Claude Code refuses to start if a managed settings file can't be read or isn't valid JSON. Test changes to `etc/`
+  before pushing (the tests check it parses), and remember the link breaks if `/opt/nesi` is unavailable.
+- Codex has no system rules file, and Gemini and Copilot have neither system rules nor system skills, so those stay
+  per user.
 
 ## How it works
 
@@ -57,7 +86,7 @@ cluster and official tool documentation, so the docs team's review is the only r
 - Each heading in `src/` cites the docs pages it condenses.
 - `tools/drift.py` (weekly in CI) reports docs changes and the sections that cite them.
 - `tools/verify.py` checks every enforced limit in `dist/` against `sacctmgr` and `sinfo`.
-- Where the docs are wrong or missing something, it goes to the docs team via [UPSTREAM-ISSUES.md](UPSTREAM-ISSUES.md),
+- Where the docs are wrong or missing something, it goes to the docs team via [DOC-ISSUES.md](DOC-ISSUES.md),
   not into `dist/`.
 
 To maintain it, see [MAINTAINING.md](MAINTAINING.md):
