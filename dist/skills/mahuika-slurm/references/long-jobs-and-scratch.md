@@ -36,8 +36,13 @@ time zone). `#SCRON` lines before an entry set `sbatch` options for it (most, no
 0 3 * * * $HOME/bin/sync.sh
 ```
 
-Entries keep running until removed, and appear in `squeue --me`.
+- The schedule sets when a run becomes eligible; it then waits in the queue like any other job.
+- The next run isn't submitted until the previous one finishes; runs that fall due meanwhile are skipped.
+- Your session's environment isn't passed on: load modules and set variables in the command or script it runs.
+- Entries keep running until removed, and appear in `squeue --me`. `scancel` on one cancels all its future runs.
+
 Only add one when the user wants genuinely periodic work, never to keep jobs permanently queued.
+Never use it (or `cron`) to run an agent: a scheduled agent is unsupervised and needs a service account (AUP).
 
 ## Temporary files
 

@@ -1,13 +1,13 @@
 ---
 name: mahuika-slurm
-description: Write, size, submit and manage Slurm batch jobs on REANNZ's Mahuika HPC cluster. Covers the batch script template, sbatch, squeue, sacct, scancel and seff, choosing CPUs, memory and walltime, partitions (milan, genoa, hugemem), job limits, priority, fair share and pending reasons, job arrays, dependencies, checkpointing, scrontab and temporary directories. Use when writing or submitting a job script on Mahuika, deciding how many resources to request, or working out why a job is pending, failed or slow to start.
+description: Write, size, submit and manage Slurm batch jobs on REANNZ's Mahuika HPC cluster. Covers the batch script template, sbatch, squeue, sacct, scancel and seff, choosing CPUs, memory and walltime, partitions (milan, genoa, hugemem), job limits, priority, Fairshare, the debug QoS and pending reasons, job arrays, dependencies, checkpointing, scrontab and temporary directories. Use when writing or submitting a job script on Mahuika, deciding how many resources to request, or working out why a job is pending, failed or slow to start.
 license: GPL-3.0-only
 ---
 
 # Slurm batch jobs on Mahuika
 
 Follow the REANNZ agent rules (`AGENTS.md`). If they aren't loaded, read
-<https://docs.nesi.org.nz/Software/AI/AI_Agent_Guidelines/> before submitting anything.
+<https://docs.nesi.org.nz/Software/AI_Agents/AI_Agent_Guidelines/> before submitting anything.
 In short: scope every query to your own jobs, leave tens of seconds or more between polls, and submit
 arrays or dependency chains, never loops of `sbatch`.
 
@@ -28,7 +28,10 @@ module load <module>
 ```
 
 - `-e` stops the job at the first failing command, so failures show as `FAILED` in `sacct`.
-- Options can also go on the command line: `sbatch --time 00:30:00 job.sl`.
+- Options can also go on the command line, overriding the script: `sbatch --time 00:30:00 job.sl`.
+- `sbatch --wrap "COMMAND"` runs one command as a job without a script. With no file name, `sbatch` reads the
+  script from standard input, so a submitting script can use a heredoc (`sbatch <<'EOF'`; with `'EOF'` quoted,
+  variables expand when the job runs, unquoted when it is submitted).
 - Ask the user which project to charge; `nesi99991` is only a docs example.
 
 ## Submit and monitor
@@ -42,8 +45,8 @@ module load <module>
 | Cancel one job | `scancel <jobid>` |
 | Efficiency after it ends | `seff <jobid>` |
 
-Rather than polling, block with `sbatch --wait job.sl`, chain work with `--dependency`, or get email with
-`--mail-type=END,FAIL --mail-user=<address>`.
+Rather than polling (also inside job scripts), block with `sbatch --wait job.sl`, chain work with `--dependency`,
+or get email with `--mail-type=END,FAIL --mail-user=<address>`.
 Never run plain `squeue` or `sacct -a`: they query the whole cluster.
 `scancel --me` cancels every job the user has, including ones started by other tools or sessions, so confirm
 with the user first.
@@ -68,7 +71,7 @@ with the user first.
 
 ## More detail
 
-- Limits, priority, fair share, and why a job is pending: [references/limits-and-priority.md](references/limits-and-priority.md)
+- Limits, priority, Fairshare, the debug QoS, and why a job is pending: [references/limits-and-priority.md](references/limits-and-priority.md)
 - Job arrays and dependency chains: [references/arrays-and-dependencies.md](references/arrays-and-dependencies.md)
 - Checkpointing, self-resubmitting jobs, `scrontab`, holds, temporary directories:
   [references/long-jobs-and-scratch.md](references/long-jobs-and-scratch.md)

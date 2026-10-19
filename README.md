@@ -4,7 +4,7 @@ Rules and skills for AI agents (Claude Code, Codex, Copilot, Gemini CLI, OpenCod
 (Mahuika).
 
 - [`dist/AGENTS.md`](dist/AGENTS.md): the rules, condensed from the
-  [AI Agent Guidelines](https://docs.nesi.org.nz/Software/AI/AI_Agent_Guidelines/), the
+  [AI Agent Guidelines](https://docs.nesi.org.nz/Software/AI_Agents/AI_Agent_Guidelines/), the
   [Acceptable Use Policy](https://docs.nesi.org.nz/Policy/Acceptable_Use_Policy/) and the scheduler and storage facts
   an agent needs. Loaded into every session, so kept under 150 lines.
 - [`dist/skills/mahuika-*`](dist/skills): how-to detail, read only when a task needs it. `AGENTS.md` lists each one
